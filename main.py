@@ -1,24 +1,8 @@
 import asyncio
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Request
 import logging
 import os
 from pathlib import Path
-from enum import Enum, StrEnum
-
-
-class TikTokWebsiteURLs:
-    popular_hashtags = (
-        "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag"
-    )
-
-
-class TikTokAPIUrls:
-    popular_hashtags = ""
-
-
-class TikTokURLs:
-    website = TikTokWebsiteURLs
-    api = TikTokAPIUrls
 
 
 async def main():
@@ -38,12 +22,27 @@ async def main():
 
         page = browser.pages[0]
 
-        await page.goto(TikTokURLs.website.popular_hashtags)
-        log(await page.title())
+        headers = []
+
+        page.on("request", lambda req: set_tiktok_api_headers(req, headers))
+
+        popular_hashtags_web_url = (
+            "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag"
+        )
+        await page.goto(url=popular_hashtags_web_url, wait_until="networkidle")
+        print(headers)
 
         await browser.close()
 
     log("END")
+
+
+async def set_tiktok_api_headers(req: Request, headers: list):
+    popular_hashtags_api_url = (
+        "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list"
+    )
+    if popular_hashtags_api_url in req.url:
+        headers.extend(await req.headers_array())
 
 
 def log(log: object):
