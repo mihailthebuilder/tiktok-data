@@ -1,9 +1,24 @@
 import asyncio
 from playwright.async_api import async_playwright
 import logging
-from dotenv import load_dotenv
 import os
 from pathlib import Path
+from enum import Enum, StrEnum
+
+
+class TikTokWebsiteURLs:
+    popular_hashtags = (
+        "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag"
+    )
+
+
+class TikTokAPIUrls:
+    popular_hashtags = ""
+
+
+class TikTokURLs:
+    website = TikTokWebsiteURLs
+    api = TikTokAPIUrls
 
 
 async def main():
@@ -13,8 +28,6 @@ async def main():
 
     log("START")
 
-    load_dotenv()
-
     async with async_playwright() as p:
         chrome_profile_dir = Path(os.getcwd()) / "chrome_profile"
 
@@ -22,10 +35,10 @@ async def main():
             user_data_dir=chrome_profile_dir,
             headless=False,
         )
-        await asyncio.sleep(60000)
 
-        page = await browser.new_page()
-        await page.goto("http://playwright.dev")
+        page = browser.pages[0]
+
+        await page.goto(TikTokURLs.website.popular_hashtags)
         log(await page.title())
 
         await browser.close()
