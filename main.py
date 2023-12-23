@@ -3,6 +3,7 @@ from playwright.async_api import async_playwright
 import logging
 from dotenv import load_dotenv
 import os
+from pathlib import Path
 
 
 async def main():
@@ -15,25 +16,24 @@ async def main():
     load_dotenv()
 
     async with async_playwright() as p:
-        chrome_profile_dir = os.environ["CHROME_PROFILE_DIR"]
-        log(f"chrome_profile_dir={chrome_profile_dir}")
+        chrome_profile_dir = Path(os.getcwd()) / "chrome_profile"
 
         browser = await p.chromium.launch_persistent_context(
             user_data_dir=chrome_profile_dir,
             headless=False,
         )
+        await asyncio.sleep(60000)
 
         page = await browser.new_page()
         await page.goto("http://playwright.dev")
         log(await page.title())
 
-        await asyncio.sleep(20)
         await browser.close()
 
     log("END")
 
 
-def log(log: str):
+def log(log: object):
     logging.info(log)
 
 
