@@ -3,6 +3,14 @@ from playwright.async_api import async_playwright, Request
 import logging
 import os
 from pathlib import Path
+from dataclasses import dataclass
+import requests
+
+
+@dataclass
+class Header:
+    name: str
+    value: str
 
 
 async def main():
@@ -11,6 +19,8 @@ async def main():
     )
 
     log("START")
+
+    log("launching browser")
 
     async with async_playwright() as p:
         chrome_profile_dir = Path(os.getcwd()) / "chrome_profile"
@@ -22,27 +32,38 @@ async def main():
 
         page = browser.pages[0]
 
-        headers = []
+        headers: list[Header] = []
 
         page.on("request", lambda req: set_tiktok_api_headers(req, headers))
 
         popular_hashtags_web_url = (
             "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag"
         )
+
+        log("fetching headers from website")
         await page.goto(url=popular_hashtags_web_url, wait_until="networkidle")
-        print(headers)
+
+        if len(headers) == 0:
+            raise Exception("no headers found")
 
         await browser.close()
+
+    print(headers)
 
     log("END")
 
 
-async def set_tiktok_api_headers(req: Request, headers: list):
+async def set_tiktok_api_headers(req: Request, headers: list[Header]):
     popular_hashtags_api_url = (
         "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list"
     )
     if popular_hashtags_api_url in req.url:
-        headers.extend(await req.headers_array())
+        headers.extend(
+            [
+                Header(header["name"], header["value"])
+                for header in await req.headers_array()
+            ]
+        )
 
 
 def log(log: object):
