@@ -3,7 +3,6 @@ import logging
 import os
 from pathlib import Path
 import httpx
-import copy
 
 
 def main():
@@ -42,7 +41,23 @@ def main():
         browser.close()
 
     log("collecting data")
-    collect_data(headers)
+
+    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code=US&sort_by=popular"
+    res = httpx.get(url, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+
+    results = res.json()["data"]["list"]
+
+    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=2&limit=50&country_code=US&sort_by=popular"
+    res = httpx.get(url, headers=headers)
+    if res.status_code != 200:
+        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+
+    results = results + res.json()["data"]["list"]
+
+    log("finding high-growth hashtags")
+    print(results)
 
     log("END")
 
@@ -55,12 +70,6 @@ def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
         for header in req.headers_array():
             if header["name"][0] != ":":
                 headers.append((header["name"], header["value"]))
-
-
-def collect_data(headers: list[tuple[str, str]]):
-    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code=US&sort_by=popular"
-    res = httpx.get(url, headers=headers)
-    print(res.text)
 
 
 def log(log: object):
