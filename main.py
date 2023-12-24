@@ -2,13 +2,8 @@ from playwright.sync_api import sync_playwright, Request
 import logging
 import os
 from pathlib import Path
-from dataclasses import dataclass
-
-
-@dataclass
-class Header:
-    name: str
-    value: str
+import httpx
+import copy
 
 
 def main():
@@ -30,35 +25,42 @@ def main():
 
         page = browser.pages[0]
 
-        headers: list[Header] = []
+        headers: list[tuple[str, str]] = []
 
         page.on("request", lambda req: set_tiktok_api_headers(req, headers))
 
-        popular_hashtags_web_url = (
-            "https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag"
-        )
-
         log("fetching headers from website")
-        page.goto(url=popular_hashtags_web_url, wait_until="networkidle")
+        page.goto(
+            url="https://ads.tiktok.com/business/creativecenter/inspiration/popular/hashtag",
+            wait_until="networkidle",
+        )
 
         if len(headers) == 0:
             raise Exception("no headers found")
 
+        log("closing browser")
         browser.close()
 
-    print(headers)
+    log("collecting data")
+    collect_data(headers)
 
     log("END")
 
 
-def set_tiktok_api_headers(req: Request, headers: list[Header]):
-    popular_hashtags_api_url = (
+def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
+    if (
         "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list"
-    )
-    if popular_hashtags_api_url in req.url:
-        headers.extend(
-            [Header(header["name"], header["value"]) for header in req.headers_array()]
-        )
+        in req.url
+    ):
+        for header in req.headers_array():
+            if header["name"][0] != ":":
+                headers.append((header["name"], header["value"]))
+
+
+def collect_data(headers: list[tuple[str, str]]):
+    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code=US&sort_by=popular"
+    res = httpx.get(url, headers=headers)
+    print(res.text)
 
 
 def log(log: object):
