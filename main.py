@@ -3,6 +3,21 @@ import logging
 import os
 from pathlib import Path
 import httpx
+from pydantic import BaseModel
+
+
+class TrendValueAtTimestamp(BaseModel):
+    time: int
+    value: float
+
+
+class Hashtag(BaseModel):
+    hashtag_id: str
+    hashtag_name: str
+    trend: list[TrendValueAtTimestamp]
+    publish_cnt: int
+    video_views: int
+    rank: int
 
 
 def main():
@@ -47,19 +62,40 @@ def main():
     if res.status_code != 200:
         raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
 
-    results = res.json()["data"]["list"]
+    hashtags = parse_popular_hashtags_json(res.json())
 
     url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=2&limit=50&country_code=US&sort_by=popular"
     res = httpx.get(url, headers=headers)
     if res.status_code != 200:
         raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
 
-    results = results + res.json()["data"]["list"]
+    hashtags = hashtags + parse_popular_hashtags_json(res.json())
 
     log("finding high-growth hashtags")
-    print(results)
+    high_growth_hashtags = filter(is_high_growth_hashtag, hashtags)
+
+    print(high_growth_hashtags)
 
     log("END")
+
+
+def parse_popular_hashtags_json(input: dict) -> list[Hashtag]:
+    return [Hashtag(**hashtag) for hashtag in input["data"]["list"]]
+
+
+def is_high_growth_hashtag(hashtag: Hashtag) -> bool:
+    if hashtag.trend[-1].value != 1:
+        return False
+
+    change_minus_1 = hashtag.trend[-1].value - hashtag.trend[-2].value
+    if change_minus_1 < 0.2:
+        return False
+
+    change_minus_2 = hashtag.trend[-2].value - hashtag.trend[-3].value
+    if change_minus_1 < change_minus_2:
+        return False
+
+    return True
 
 
 def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
@@ -76,4 +112,5 @@ def log(log: object):
     logging.info(log)
 
 
-main()
+if __name__ == "__main__":
+    main()
