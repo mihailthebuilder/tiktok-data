@@ -72,7 +72,11 @@ def main():
     hashtags = hashtags + parse_popular_hashtags_json(res.json())
 
     log("finding high-growth hashtags")
-    high_growth_hashtags = filter(is_high_growth_hashtag, hashtags)
+    high_growth_hashtags = [
+        hashtag for hashtag in hashtags if is_high_growth_hashtag(hashtag)
+    ]
+
+    produce_report(high_growth_hashtags)
 
     print(high_growth_hashtags)
 
@@ -106,6 +110,12 @@ def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
         for header in req.headers_array():
             if header["name"][0] != ":":
                 headers.append((header["name"], header["value"]))
+
+
+def produce_report(hashtags: list[Hashtag]):
+    with open("output.txt", "w", encoding="utf-8") as f:
+        for hashtag in hashtags:
+            f.write(f"{hashtag.model_dump()}\n")
 
 
 def log(log: object):

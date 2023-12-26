@@ -2,3 +2,4 @@ venv
 .env
 chrome_profile
 __pycache__
+output.txt
