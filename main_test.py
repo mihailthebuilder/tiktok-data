@@ -14,7 +14,7 @@ class TestParsePopularHashtagsJson(unittest.TestCase):
 
 class TestIsHighGrowthHashtag(unittest.TestCase):
     def test_happy_path(self):
-        with open("test.json", "r", encoding="utf-8") as f:
+        with open("popular_hashtags_api_response.json", "r", encoding="utf-8") as f:
             api_response = json.load(f)
             hashtags = parse_popular_hashtags_json(api_response)
             high_growth_hashtags = [
