@@ -78,8 +78,6 @@ def main():
 
     produce_report(high_growth_hashtags)
 
-    print(high_growth_hashtags)
-
     log("END")
 
 
