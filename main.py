@@ -71,33 +71,13 @@ def main():
 
     hashtags = hashtags + parse_popular_hashtags_json(res.json())
 
-    log("finding high-growth hashtags")
-    high_growth_hashtags = [
-        hashtag for hashtag in hashtags if is_high_growth_hashtag(hashtag)
-    ]
-
-    produce_report(high_growth_hashtags)
+    produce_report(hashtags)
 
     log("END")
 
 
 def parse_popular_hashtags_json(input: dict) -> list[Hashtag]:
     return [Hashtag(**hashtag) for hashtag in input["data"]["list"]]
-
-
-def is_high_growth_hashtag(hashtag: Hashtag) -> bool:
-    if hashtag.trend[-1].value != 1:
-        return False
-
-    change_minus_1 = hashtag.trend[-1].value - hashtag.trend[-2].value
-    if change_minus_1 < 0.2:
-        return False
-
-    change_minus_2 = hashtag.trend[-2].value - hashtag.trend[-3].value
-    if change_minus_1 < change_minus_2:
-        return False
-
-    return True
 
 
 def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
