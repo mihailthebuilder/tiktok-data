@@ -123,18 +123,13 @@ def upload_data(hashtags: list[Hashtag]):
             if inserted_hashtag_result == None:
                 raise Exception(f"couldn't insert hashtag {hashtag.hashtag_name}")
 
-            inserted_hashtag_id = inserted_hashtag_result[0]
-
-            if type(inserted_hashtag_id) is not str:
-                raise Exception(
-                    f"couldn't get uuid of inserted hashtag {hashtag.hashtag_name}"
-                )
+            inserted_hashtag_id = str(inserted_hashtag_result[0])
 
             for trend in hashtag.trend:
                 cur.execute(
                     """
-                        INSERT INTO hashtag_interest
-                            ("hashtag_id", "recorded_for", "interest")
+                        INSERT INTO hashtag_trend
+                            ("hashtag_id", "recorded_for_unix_time", "interest")
                         VALUES
                             (%s, %s, %s)
                     """,
