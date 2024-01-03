@@ -6,6 +6,7 @@ import httpx
 from pydantic import BaseModel
 import psycopg
 from dotenv import load_dotenv
+from typing import Optional
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -20,6 +21,8 @@ class Hashtag(BaseModel):
     publish_cnt: int
     video_views: int
     rank: int
+    is_promoted: bool
+    trending_type: Optional[int] = 0
 
 
 def main():
@@ -104,10 +107,10 @@ def upload_data(hashtags: list[Hashtag]):
             inserted_hashtag = cur.execute(
                 """
                     INSERT INTO hashtag 
-                        ("name", "country_code", "posts", "rank", "latest_trending", "views")
+                        ("name", "country_code", "posts", "rank", "latest_trending", "views", "is_promoted", "trending_type")
                     VALUES
-                        (%s, %s, %s, %s, %s, %s)
-                    RETURNING 
+                        (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING
                         id
                 """,
                 [
@@ -117,6 +120,8 @@ def upload_data(hashtags: list[Hashtag]):
                     hashtag.rank,
                     True,
                     hashtag.video_views,
+                    hashtag.is_promoted,
+                    hashtag.trending_type,
                 ],
             )
             inserted_hashtag_result = inserted_hashtag.fetchone()
