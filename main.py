@@ -1,3 +1,4 @@
+from enum import StrEnum
 from playwright.sync_api import sync_playwright, Request
 import logging
 import os
@@ -6,7 +7,7 @@ import httpx
 from pydantic import BaseModel
 import psycopg
 from dotenv import load_dotenv
-from typing import Optional
+from typing import Literal, Optional
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -14,13 +15,23 @@ class TrendValueAtTimestamp(BaseModel):
     value: float
 
 
-class Hashtag(BaseModel):
+class CountryCode(StrEnum):
+    UnitedStates = "US"
+    UnitedKingdom = "GB"
+
+
+class CountryInfo(BaseModel):
+    id: CountryCode
+
+
+class HashtagJson(BaseModel):
     hashtag_id: str
     hashtag_name: str
     trend: list[TrendValueAtTimestamp]
     publish_cnt: int
     video_views: int
     rank: int
+    country_info: CountryInfo
     is_promoted: bool
     trending_type: Optional[int] = 0
 
@@ -38,7 +49,11 @@ def main():
     headers = get_headers_for_api_calls()
 
     log("collecting data")
-    hashtags = get_popular_hashtags_for_country(api_headers=headers, country_code="US")
+    hashtags = get_popular_hashtags_for_country(
+        api_headers=headers, country_code=CountryCode.UnitedStates
+    ) + get_popular_hashtags_for_country(
+        api_headers=headers, country_code=CountryCode.UnitedKingdom
+    )
 
     log("exporting hashtags")
     export_hashtags(hashtags)
@@ -50,23 +65,28 @@ def main():
 
 
 def get_popular_hashtags_for_country(
-    api_headers: list[tuple[str, str]], country_code: str
-) -> list[Hashtag]:
-    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code={country_code}&sort_by=popular"
-    res = httpx.get(url, headers=api_headers)
-    if res.status_code != 200:
-        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+    api_headers: list[tuple[str, str]], country_code: CountryCode
+) -> list[HashtagJson]:
+    hashtags = get_popular_hashtags_for_country_paginated(
+        api_headers=api_headers, country_code=country_code, page=1
+    )
 
-    hashtags = parse_popular_hashtags_json(res.json())
-
-    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=2&limit=50&country_code={country_code}&sort_by=popular"
-    res = httpx.get(url, headers=api_headers)
-    if res.status_code != 200:
-        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
-
-    hashtags = hashtags + parse_popular_hashtags_json(res.json())
+    hashtags = hashtags + get_popular_hashtags_for_country_paginated(
+        api_headers=api_headers, country_code=country_code, page=2
+    )
 
     return hashtags
+
+
+def get_popular_hashtags_for_country_paginated(
+    api_headers: list[tuple[str, str]], country_code: CountryCode, page: Literal[1, 2]
+) -> list[HashtagJson]:
+    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page={page}&limit=50&country_code={country_code.value}&sort_by=popular"
+    res = httpx.get(url, headers=api_headers)
+    if res.status_code != 200:
+        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+
+    return [HashtagJson(**hashtag) for hashtag in res.json()["data"]["list"]]
 
 
 def get_headers_for_api_calls() -> list[tuple[str, str]]:
@@ -98,7 +118,7 @@ def get_headers_for_api_calls() -> list[tuple[str, str]]:
     return headers
 
 
-def upload_data(hashtags: list[Hashtag]):
+def upload_data(hashtags: list[HashtagJson]):
     db_url = os.environ["DATABASE_URL"]
 
     with psycopg.connect(db_url) as conn:
@@ -108,11 +128,8 @@ def upload_data(hashtags: list[Hashtag]):
             """
                 UPDATE hashtag
                 SET "latest_trending" = FALSE
-                WHERE 
-                    "country_code" = %s
-                    AND "latest_trending" = TRUE
+                WHERE "latest_trending" = TRUE
             """,
-            ["US"],
         )
 
         for hashtag in hashtags:
@@ -127,7 +144,7 @@ def upload_data(hashtags: list[Hashtag]):
                 """,
                 [
                     hashtag.hashtag_name,
-                    "US",
+                    hashtag.country_info.id,
                     hashtag.publish_cnt,
                     hashtag.rank,
                     True,
@@ -154,10 +171,6 @@ def upload_data(hashtags: list[Hashtag]):
                 )
 
 
-def parse_popular_hashtags_json(input: dict) -> list[Hashtag]:
-    return [Hashtag(**hashtag) for hashtag in input["data"]["list"]]
-
-
 def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
     if (
         "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list"
@@ -168,7 +181,7 @@ def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
                 headers.append((header["name"], header["value"]))
 
 
-def export_hashtags(hashtags: list[Hashtag]):
+def export_hashtags(hashtags: list[HashtagJson]):
     with open("output.txt", "w", encoding="utf-8") as f:
         for hashtag in hashtags:
             f.write(f"{hashtag.model_dump()}\n")
