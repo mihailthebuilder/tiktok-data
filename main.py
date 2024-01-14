@@ -35,6 +35,41 @@ def main():
 
     log("launching browser")
 
+    headers = get_headers_for_api_calls()
+
+    log("collecting data")
+    hashtags = get_popular_hashtags_for_country(api_headers=headers, country_code="US")
+
+    log("exporting hashtags")
+    export_hashtags(hashtags)
+
+    log("uploading data")
+    upload_data(hashtags)
+
+    log("END")
+
+
+def get_popular_hashtags_for_country(
+    api_headers: list[tuple[str, str]], country_code: str
+) -> list[Hashtag]:
+    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code={country_code}&sort_by=popular"
+    res = httpx.get(url, headers=api_headers)
+    if res.status_code != 200:
+        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+
+    hashtags = parse_popular_hashtags_json(res.json())
+
+    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=2&limit=50&country_code={country_code}&sort_by=popular"
+    res = httpx.get(url, headers=api_headers)
+    if res.status_code != 200:
+        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
+
+    hashtags = hashtags + parse_popular_hashtags_json(res.json())
+
+    return hashtags
+
+
+def get_headers_for_api_calls() -> list[tuple[str, str]]:
     with sync_playwright() as p:
         chrome_profile_dir = Path(os.getcwd()) / "chrome_profile"
 
@@ -60,30 +95,7 @@ def main():
 
         log("closing browser")
         browser.close()
-
-    log("collecting data")
-
-    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=1&limit=50&country_code=US&sort_by=popular"
-    res = httpx.get(url, headers=headers)
-    if res.status_code != 200:
-        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
-
-    hashtags = parse_popular_hashtags_json(res.json())
-
-    url = "https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page=2&limit=50&country_code=US&sort_by=popular"
-    res = httpx.get(url, headers=headers)
-    if res.status_code != 200:
-        raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
-
-    hashtags = hashtags + parse_popular_hashtags_json(res.json())
-
-    log("exporting hashtags")
-    export_hashtags(hashtags)
-
-    log("uploading data")
-    upload_data(hashtags)
-
-    log("END")
+    return headers
 
 
 def upload_data(hashtags: list[Hashtag]):
