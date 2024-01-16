@@ -81,7 +81,10 @@ def get_popular_hashtags_for_country(
 def get_popular_hashtags_for_country_paginated(
     api_headers: list[tuple[str, str]], country_code: CountryCode, page: Literal[1, 2]
 ) -> list[HashtagJson]:
-    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page={page}&limit=50&country_code={country_code.value}&sort_by=popular"
+    # can be 7, 30, and 120
+    period = 30
+
+    url = f"https://ads.tiktok.com/creative_radar_api/v1/popular_trend/hashtag/list?page={page}&limit=50&country_code={country_code.value}&period={period}&sort_by=popular"
     res = httpx.get(url, headers=api_headers)
     if res.status_code != 200:
         raise Exception(f"bas response, code: {res.status_code}, text: {res.text}")
