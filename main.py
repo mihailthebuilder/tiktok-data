@@ -18,6 +18,7 @@ class TrendValueAtTimestamp(BaseModel):
 class CountryCode(StrEnum):
     UnitedStates = "US"
     UnitedKingdom = "GB"
+    Pakistan = "PK"
 
 
 class CountryInfo(BaseModel):
@@ -49,11 +50,12 @@ def main():
     headers = get_headers_for_api_calls()
 
     log("collecting data")
-    hashtags = get_popular_hashtags_for_country(
-        api_headers=headers, country_code=CountryCode.UnitedStates
-    ) + get_popular_hashtags_for_country(
-        api_headers=headers, country_code=CountryCode.UnitedKingdom
-    )
+    hashtags: list[HashtagJson] = []
+
+    for code in CountryCode:
+        hashtags = hashtags + get_popular_hashtags_for_country(
+            api_headers=headers, country_code=code
+        )
 
     log("exporting hashtags")
     export_hashtags(hashtags)
