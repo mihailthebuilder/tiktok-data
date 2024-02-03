@@ -8,6 +8,7 @@ from pydantic import BaseModel
 import psycopg
 from dotenv import load_dotenv
 from typing import Literal, Optional
+import json
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -138,14 +139,12 @@ def upload_data(hashtags: list[HashtagJson]):
         )
 
         for hashtag in hashtags:
-            inserted_hashtag = cur.execute(
+            cur.execute(
                 """
                     INSERT INTO hashtag 
-                        ("name", "country_code", "posts", "rank", "latest_trending", "views", "is_promoted", "trending_type")
+                        ("name", "country_code", "posts", "rank", "latest_trending", "views", "is_promoted", "trending_type", "trend")
                     VALUES
-                        (%s, %s, %s, %s, %s, %s, %s, %s)
-                    RETURNING
-                        id
+                        (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 [
                     hashtag.hashtag_name,
@@ -156,24 +155,9 @@ def upload_data(hashtags: list[HashtagJson]):
                     hashtag.video_views,
                     hashtag.is_promoted,
                     hashtag.trending_type,
+                    json.dumps([point.model_dump() for point in hashtag.trend]),
                 ],
             )
-            inserted_hashtag_result = inserted_hashtag.fetchone()
-            if inserted_hashtag_result == None:
-                raise Exception(f"couldn't insert hashtag {hashtag.hashtag_name}")
-
-            inserted_hashtag_id = str(inserted_hashtag_result[0])
-
-            for trend in hashtag.trend:
-                cur.execute(
-                    """
-                        INSERT INTO hashtag_trend
-                            ("hashtag_id", "recorded_for_unix_time", "interest")
-                        VALUES
-                            (%s, %s, %s)
-                    """,
-                    [inserted_hashtag_id, trend.time, round(trend.value * 100)],
-                )
 
 
 def set_tiktok_api_headers(req: Request, headers: list[tuple[str, str]]):
