@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from typing import Literal, Optional
 import json
 import argparse
+import time
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -136,9 +137,9 @@ def get_headers_for_api_calls(headless: bool) -> list[tuple[str, str]]:
             wait_until="networkidle",
         )
 
+        page.wait_for_selector("#hashtagItemContainer")
+
         if len(headers) == 0:
-            with open("debug.html", "w") as f:
-                f.write(page.inner_html("html"))
             raise Exception("no headers found")
 
         log("closing browser")
