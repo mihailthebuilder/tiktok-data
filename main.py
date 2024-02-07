@@ -78,9 +78,12 @@ def main():
 def get_args() -> Args:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--headless", type=bool, help="Specify whether to run headless using --headless"
+        "--headless",
+        help="Specify whether to run headless using --headless",
+        action="store_true",
     )
     args = parser.parse_args()
+
     return Args(run_browser_headless=args.headless)
 
 
