@@ -134,6 +134,8 @@ def get_headers_for_api_calls(headless: bool) -> list[tuple[str, str]]:
         )
 
         if len(headers) == 0:
+            with open("debug.html", "w") as f:
+                f.write(page.inner_html("html"))
             raise Exception("no headers found")
 
         log("closing browser")

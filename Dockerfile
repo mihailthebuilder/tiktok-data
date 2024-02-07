@@ -2,6 +2,8 @@ FROM python:3.11.6
 
 WORKDIR /usr/src/app
 
+VOLUME /usr/src/app
+
 COPY chrome_profile .env ./
 
 COPY requirements.txt .
