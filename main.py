@@ -9,6 +9,7 @@ import psycopg
 from dotenv import load_dotenv
 from typing import Literal, Optional
 import json
+import argparse
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -38,6 +39,10 @@ class HashtagJson(BaseModel):
     trending_type: Optional[int] = 0
 
 
+class Args(BaseModel):
+    run_browser_headless: bool
+
+
 def main():
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO
@@ -46,9 +51,12 @@ def main():
 
     log("START")
 
+    log("getting args")
+    args = get_args()
+
     log("launching browser")
 
-    headers = get_headers_for_api_calls()
+    headers = get_headers_for_api_calls(headless=args.run_browser_headless)
 
     log("collecting data")
     hashtags: list[HashtagJson] = []
@@ -65,6 +73,15 @@ def main():
     upload_data(hashtags)
 
     log("END")
+
+
+def get_args() -> Args:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--headless", type=bool, help="Specify whether to run headless using --headless"
+    )
+    args = parser.parse_args()
+    return Args(run_browser_headless=args.headless)
 
 
 def get_popular_hashtags_for_country(
@@ -95,13 +112,13 @@ def get_popular_hashtags_for_country_paginated(
     return [HashtagJson(**hashtag) for hashtag in res.json()["data"]["list"]]
 
 
-def get_headers_for_api_calls() -> list[tuple[str, str]]:
+def get_headers_for_api_calls(headless: bool) -> list[tuple[str, str]]:
     with sync_playwright() as p:
         chrome_profile_dir = Path(os.getcwd()) / "chrome_profile"
 
         browser = p.chromium.launch_persistent_context(
             user_data_dir=chrome_profile_dir,
-            headless=False,
+            headless=headless,
         )
 
         page = browser.pages[0]
