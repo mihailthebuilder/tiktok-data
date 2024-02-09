@@ -1,1 +1,1 @@
-docker run -v /${PWD}/container:/usr/src/app -it tiktok-data
+docker run -it tiktok-data

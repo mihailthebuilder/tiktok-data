@@ -1,4 +1,4 @@
-FROM python:3.11.6
+FROM python:3.11.8
 
 WORKDIR /usr/src/app
 
@@ -10,6 +10,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN playwright install --with-deps chromium
 
+RUN apt-get install xvfb
+
+RUN apt-get install -y xauth
+
 COPY main.py .
 
-CMD ["python", "main.py", "--headless"]
+CMD ["xvfb-run", "-a","python", "main.py"]
