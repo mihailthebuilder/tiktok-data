@@ -22,10 +22,12 @@ There are a couple of ways of doing it:
 
 1. Web server - involves more setup
 2. Cron jobs - simpler, but Docker containers aren't made for this; you won't notice if the cron job fails
+3. GitHub Actions - service has disk space limitations for free tier, which you'll exceed
+   because of the `chrome_profile` directory (see below).
 
 ### Chrome profile
 
-The application needs to have the Chrome profile directory. You can't add it to git though because
-it contains sensitive information from the browser. One way to overcome this is to upload the
-directory to an SFTP server like [SFTPGo](https://github.com/drakkan/sftpgo), then have the application
-download the contents.
+The application needs to have the Chrome profile directory, which takes up about 1GB in disk space.
+You can't add it to git though because it contains sensitive information from the browser.
+One way to overcome this is to upload the directory to an SFTP server
+like [SFTPGo](https://github.com/drakkan/sftpgo), then have the application download the contents.

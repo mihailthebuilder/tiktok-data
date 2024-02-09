@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 from typing import Literal, Optional
 import json
 import argparse
-import time
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 
 class TrendValueAtTimestamp(BaseModel):
@@ -45,6 +46,36 @@ class Args(BaseModel):
 
 
 def main():
+    try:
+        run_script()
+    except Exception as e:
+        error_message = f"{e}"
+        send_alert(error_message)
+        raise e
+
+
+def send_alert(message: str):
+    log("sending alert for failed job")
+
+    try:
+        mail = Mail(
+            from_email=os.environ["EMAIL_FROM"],
+            to_emails=os.environ["EMAIL_TO"],
+            subject="ttk - failed",
+            plain_text_content=message,
+        )
+        sg = SendGridAPIClient(os.environ["SENDGRID_API_KEY"])
+        res = sg.send(mail)
+        if res.status_code != 202:
+            raise Exception(
+                f"error in response. status code {res.status_code} , body {res.body} , headers {res.headers}"
+            )
+
+    except Exception as e:
+        log(f"error sending alert: {e}")
+
+
+def run_script():
     logging.basicConfig(
         format="%(asctime)s %(levelname)-8s %(message)s", level=logging.INFO
     )
