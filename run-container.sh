@@ -1,1 +1,1 @@
-docker run -it tiktok-data
+docker run --init tiktok-data
