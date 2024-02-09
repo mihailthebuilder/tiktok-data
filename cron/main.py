@@ -36,7 +36,7 @@ def copy_files(c: Connection):
         # "chrome_profile",
         ".env",
         "build-image.sh",
-        "docker-clear.sh",
+        # "docker-clear.sh",
         "Dockerfile",
         "main.py",
         "requirements.txt",
