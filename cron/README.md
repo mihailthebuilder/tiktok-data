@@ -15,5 +15,20 @@ crontab -e
 and add:
 
 ```bash
-1 0 * * * docker run --rm tiktok-data
+0 8 * * * docker run --rm tiktok-data
+```
+
+# Debug
+
+Check the command ran:
+
+```bash
+grep tiktok /var/log/syslog
+```
+
+Check container logs:
+
+```bash
+docker ps
+docker logs {container-id}
 ```
