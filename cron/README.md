@@ -15,7 +15,7 @@ crontab -e
 and add:
 
 ```bash
-0 8 * * * docker run --rm tiktok-data
+0 8 * * * docker run --init tiktok-data
 ```
 
 # Debug
